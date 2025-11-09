@@ -8,8 +8,18 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/",
       "dest": "api/index.js"
+    },
+    {
+      "src": "/tts",
+      "dest": "api/index.js",
+      "methods": ["POST"]
+    },
+    {
+      "src": "/tts?format=base64",
+      "dest": "api/index.js",
+      "methods": ["POST"]
     }
   ],
   "functions": {
