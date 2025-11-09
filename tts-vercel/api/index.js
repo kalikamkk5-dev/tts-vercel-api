@@ -1,6 +1,6 @@
-import express from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
-import Lame from 'node-lame';
+const express = require('express');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Lame = require('node-lame');
 
 const app = express();
 app.use(express.json());
@@ -9,12 +9,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.post('/tts', async (req, res) => {
   try {
-    const { text, voice = 'Kore' } = req.body;  // voice اختیاری
+    const { text, voice = 'Kore' } = req.body;
     if (!text) {
       return res.status(400).json({ error: 'Text required' });
     }
 
-    // تولید PCM از Gemini
     const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-preview-tts' });
     const result = await model.generateContent({
       contents: [{ parts: [{ text }] }],
@@ -27,19 +26,17 @@ app.post('/tts', async (req, res) => {
     });
 
     const audioData = result.response.candidates[0].content.parts[0].inlineData.data;
-    const pcmBuffer = Buffer.from(audioData, 'base64');  // Raw PCM: 16-bit, 24kHz, mono
+    const pcmBuffer = Buffer.from(audioData, 'base64');
 
-    // تبدیل به MP3
     const encoder = new Lame.Encoder({
-      channels: 1,        // mono
-      sampleRate: 24000,  // 24kHz
-      bitDepth: 16,       // 16-bit
-      bitrate: 128,       // kbps (کیفیت متوسط، حجم کم)
+      channels: 1,
+      sampleRate: 24000,
+      bitDepth: 16,
+      bitrate: 128,
     });
 
     const mp3Buffer = encoder.encode(pcmBuffer);
 
-    // سوئیچ بر اساس ?format=base64 (default: stream)
     const format = req.query.format || 'stream';
     if (format === 'base64') {
       const mp3Base64 = mp3Buffer.toString('base64');
@@ -47,7 +44,7 @@ app.post('/tts', async (req, res) => {
     } else {
       res.set('Content-Type', 'audio/mp3');
       res.set('Content-Disposition', 'attachment; filename="tts-audio.mp3"');
-      res.send(mp3Buffer);  // Stream binary MP3
+      res.send(mp3Buffer);
     }
   } catch (error) {
     console.error(error);
@@ -55,9 +52,8 @@ app.post('/tts', async (req, res) => {
   }
 });
 
-// Health check
 app.get('/', (req, res) => {
   res.json({ message: 'TTS API ready! POST to /tts with { "text": "..." }' });
 });
 
-export default app;  // Vercel این رو wrap می‌کنه
+module.exports = app;  // CommonJS export
